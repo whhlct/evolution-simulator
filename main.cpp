@@ -7,8 +7,8 @@
 int main()
 {
 	// create window
-	int SCREEN_WIDTH = 1920;
-	int SCREEN_HEIGHT = 1080;
+	float SCREEN_WIDTH = 1920;
+	float SCREEN_HEIGHT = 1080;
 	float WORLD_WIDTH = 10000.f;
 	float WORLD_HEIGHT = 10000.f;
 	sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Evolution Simulator", (sf::Style::None));
@@ -48,7 +48,6 @@ int main()
 	float speed = 0.0f;
 	float turn = 0.0f;
 	float speedGrav = 0.0f;
-	sf::VertexArray lines(sf::Lines, 48);
 	
 	while (window.isOpen())
 	{
@@ -95,9 +94,9 @@ int main()
 			view.move(10.f, 0.f);
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-			view.zoom(1.02);
+			view.zoom(1.02f);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-			view.zoom(1 / 1.02);
+			view.zoom(1 / 1.02f);
 		
 		window.setView(view);
 		
@@ -117,30 +116,18 @@ int main()
 		{
 			renderer.draw(prey);
 		}
-		sf::CircleShape contact_circle(10.f);
-		sf::CircleShape closest_circle(10.f);
-		closest_circle.setFillColor(sf::Color::Red);
-		for (int i = 0; i < 24; i++) {
-			// Draw ray lines
-			lines[i*2].position = world.predators[0].position;
-			lines[i * 2 + 1].position = world.predators[0].position + sf::Vector2f(std::cos((world.predators[0].direction + world.predators[0].ray_angles[i]) * 3.14159 / 180), std::sin((world.predators[0].direction + world.predators[0].ray_angles[i]) * 3.14159 / 180)) * 4000.f;
-			float px, py;
-			for (auto& prey : world.preys) {
-				float distance = world.predators[0].ray_distance;
-				if (lineCircle(lines[i * 2].position.x, lines[i * 2].position.y, lines[i * 2 + 1].position.x, lines[i * 2 + 1].position.y, prey.position.x, prey.position.y, prey.radius, px, py, distance)) {
-					contact_circle.setPosition(px, py);
-					if (distance < world.predators[0].ray_values[i])
-					{
-						world.predators[0].ray_values[i] = distance;
-					}
-					window.draw(contact_circle);
-				}
-			}
-			closest_circle.setPosition(world.predators[0].position + sf::Vector2f(std::cos((world.predators[0].direction + world.predators[0].ray_angles[i]) * 3.14159 / 180), std::sin((world.predators[0].direction + world.predators[0].ray_angles[i]) * 3.14159 / 180)) * 4000.f);
-			window.draw(closest_circle);
+		//sf::CircleShape closest_circle(10.f);
+		//sf::CircleShape contact_circle(10.f);
+		//closest_circle.setFillColor(sf::Color::Red);
+		//contact_circle.setOrigin(5.f, 5.f);
+		//closest_circle.setOrigin(5.f, 5.f);
+		world.updateVision();
+		window.draw(world.predators[0].lines);
+		/*
+		for (Prey& prey : world.preys) {
+			window.draw(prey.lines);
 		}
-
-		window.draw(lines);
+		*/
 		
 		window.setView(window.getDefaultView());
 		renderer.draw_bar(e.energy, SCREEN_HEIGHT, 400, 40);
@@ -149,6 +136,7 @@ int main()
 			renderer.draw_bar(e.digestion, SCREEN_HEIGHT, 400, 40, sf::Color::Red, 200);
 		}
 		renderer.draw_text(std::to_string(world.preys.size()), 0, 0, 64);
+		renderer.draw_text(std::to_string(world.predators[0].ray_values[0]), 0, 400);
 		
 		window.display();
 

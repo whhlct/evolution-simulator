@@ -4,6 +4,10 @@
 #include "direction.hpp"
 
 //#define PI 3.14159265
+bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float r, float& closestX, float& closestY);
+float dist(float x1, float y1, float x2, float y2);
+
+struct World;
 
 struct Entity
 {
@@ -26,11 +30,14 @@ struct Entity
 	float ray_angles[24];
 	float ray_distance;
 	float ray_values[24];
+	sf::VertexArray lines;
 	
 	Entity(float x, float y, float angle = 0.0f)
 		: position(x, y)
 		, direction(angle)
-	{}
+	{
+		lines = sf::VertexArray(sf::Lines, 48);
+	}
 
 protected:
 	void updatePosition(float dt)
@@ -38,6 +45,37 @@ protected:
 		direction.update(dt, rotation);
 		position += direction.getVector() * (speed * speedLimit * dt);
 	}
+public:
+	// Update rays of entity
+	/*
+	void updateVision(std::vector<Entity> *entityList)
+	{
+		for (int i = 0; i < 24; i++) {
+			ray_values[i] = ray_distance;
+			// Draw ray lines
+			lines[i*2].position = position;
+			lines[i * 2 + 1].position = position + sf::Vector2f(std::cos((direction + ray_angles[i]) * 3.14159 / 180), std::sin((direction + ray_angles[i]) * 3.14159 / 180)) * ray_distance;
+			float px, py;
+			for (Entity& entity : *entityList) {
+				if (lineCircle(lines[i * 2].position.x, lines[i * 2].position.y, lines[i * 2 + 1].position.x, lines[i * 2 + 1].position.y, entity.position.x, entity.position.y, entity.radius, px, py)) {
+					float distance = dist(position.x, position.y, px, py);
+					//contact_circle.setPosition(px, py);
+					if (distance < ray_values[i])
+					{
+						ray_values[i] = distance;
+					}
+					//window.draw(contact_circle);
+				}
+			}
+			//closest_circle.setPosition(position + sf::Vector2f(50.f, 50.f));
+			//closest_circle.setPosition(position + sf::Vector2f(std::cos((direction + ray_angles[i]) * 3.14159 / 180), std::sin((direction + ray_angles[i]) * 3.14159 / 180)) * ray_values[i]);
+			lines[i * 2 + 1].position = position + sf::Vector2f(std::cos((direction + ray_angles[i]) * 3.14159 / 180), std::sin((direction + ray_angles[i]) * 3.14159 / 180)) * ray_values[i];
+			//window.draw(closest_circle);
+		}
+
+		//window.draw(lines);
+	}
+	*/
 };
 
 struct Predator : Entity
@@ -211,6 +249,64 @@ struct World
 			}
 		}
 	}
+	void updateVision()
+	{
+		// UPDATE PREDATOR RAYS
+		for (Predator& predator : predators)
+		{
+			for (int i = 0; i < 24; i++)
+			{
+				predator.ray_values[i] = predator.ray_distance;
+				// Draw ray lines
+				predator.lines[i*2].position = predator.position;
+				predator.lines[i * 2 + 1].position = predator.position + sf::Vector2f(std::cos((predator.direction + predator.ray_angles[i]) * 3.14159 / 180), std::sin((predator.direction + predator.ray_angles[i]) * 3.14159 / 180)) * predator.ray_distance;
+				float px, py;
+				for (Prey& prey : preys) {
+					if (lineCircle(predator.lines[i * 2].position.x, predator.lines[i * 2].position.y, predator.lines[i * 2 + 1].position.x, predator.lines[i * 2 + 1].position.y, prey.position.x, prey.position.y, prey.radius, px, py)) {
+						float distance = dist(predator.position.x, predator.position.y, px, py);
+						//contact_circle.setPosition(px, py);
+						if (distance < predator.ray_values[i])
+						{
+							predator.ray_values[i] = distance;
+						}
+						//window.draw(contact_circle);
+					}
+				}
+				//closest_circle.setPosition(position + sf::Vector2f(50.f, 50.f));
+				//closest_circle.setPosition(position + sf::Vector2f(std::cos((direction + ray_angles[i]) * 3.14159 / 180), std::sin((direction + ray_angles[i]) * 3.14159 / 180)) * ray_values[i]);
+				predator.lines[i * 2 + 1].position = predator.position + sf::Vector2f(std::cos((predator.direction + predator.ray_angles[i]) * 3.14159 / 180), std::sin((predator.direction + predator.ray_angles[i]) * 3.14159 / 180)) * predator.ray_values[i];
+				//window.draw(closest_circle);
+			}
+		}
+
+		// UPDATE PREY RAYS
+		for (Prey& prey : preys)
+		{
+			for (int i = 0; i < 24; i++)
+			{
+				prey.ray_values[i] = prey.ray_distance;
+				// Draw ray lines
+				prey.lines[i*2].position = prey.position;
+				prey.lines[i * 2 + 1].position = prey.position + sf::Vector2f(std::cos((prey.direction + prey.ray_angles[i]) * 3.14159 / 180), std::sin((prey.direction + prey.ray_angles[i]) * 3.14159 / 180)) * prey.ray_distance;
+				float px, py;
+				for (Predator& predator : predators) {
+					if (lineCircle(prey.lines[i * 2].position.x, prey.lines[i * 2].position.y, prey.lines[i * 2 + 1].position.x, prey.lines[i * 2 + 1].position.y, predator.position.x, predator.position.y, predator.radius, px, py)) {
+						float distance = dist(prey.position.x, prey.position.y, px, py);
+						//contact_circle.setPosition(px, py);
+						if (distance < prey.ray_values[i])
+						{
+							prey.ray_values[i] = distance;
+						}
+						//window.draw(contact_circle);
+					}
+				}
+				//closest_circle.setPosition(position + sf::Vector2f(50.f, 50.f));
+				//closest_circle.setPosition(position + sf::Vector2f(std::cos((direction + ray_angles[i]) * 3.14159 / 180), std::sin((direction + ray_angles[i]) * 3.14159 / 180)) * ray_values[i]);
+				prey.lines[i * 2 + 1].position = prey.position + sf::Vector2f(std::cos((prey.direction + prey.ray_angles[i]) * 3.14159 / 180), std::sin((prey.direction + prey.ray_angles[i]) * 3.14159 / 180)) * prey.ray_values[i];
+				//window.draw(closest_circle);
+			}
+		}
+	}
 };
 
 struct Renderer
@@ -343,7 +439,7 @@ bool linePoint(float x1, float y1, float x2, float y2, float px, float py) {
 	return false;
 }
 // LINE/CIRCLE
-bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float r, float& closestX, float& closestY, float& distance) {
+bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, float r, float& closestX, float& closestY) {
 
 	// is either end INSIDE the circle?
 	// if so, return true immediately
@@ -371,7 +467,7 @@ bool lineCircle(float x1, float y1, float x2, float y2, float cx, float cy, floa
 	// get distance to closest point
 	distX = closestX - cx;
 	distY = closestY - cy;
-	distance = sqrt((distX * distX) + (distY * distY));
+	float distance = sqrt((distX * distX) + (distY * distY));
 
 	if (distance <= r) {
 		return true;
